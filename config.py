@@ -28,7 +28,7 @@ class GoogleService:
 class Config:
     bot: Bot
     db: Db
-    gs: GoogleService
+    google_service: GoogleService
 
 
 def load_config(path: str | None = None) -> Config:
@@ -45,7 +45,7 @@ def load_config(path: str | None = None) -> Config:
             user=env('DB_USER'),
             password=env('DB_PASSWORD')
         ),
-        gs=GoogleService(
+        google_service=GoogleService(
             credentials_path=env('GS_CREDENTIALS'),
             sheets_ids=json.loads('SHEETS_IDS')
         )
