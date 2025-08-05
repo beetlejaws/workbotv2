@@ -55,8 +55,10 @@ class Test(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     course_id: Mapped[int] = mapped_column(ForeignKey('courses.id'))
     title: Mapped[str] = mapped_column()
-    start_date: Mapped[datetime.datetime] = mapped_column()
-    end_date: Mapped[datetime.datetime] = mapped_column()
+    start_date: Mapped[datetime.date] = mapped_column()
+    start_time: Mapped[datetime.time] = mapped_column()
+    end_date: Mapped[datetime.date] = mapped_column()
+    end_time: Mapped[datetime.time] = mapped_column()
 
 
 class Schedule(Base):
@@ -68,4 +70,3 @@ class Schedule(Base):
     time: Mapped[datetime.time] = mapped_column()
     title: Mapped[str] = mapped_column()
     is_work: Mapped[bool] = mapped_column(nullable=True)
-    
