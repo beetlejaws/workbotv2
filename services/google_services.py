@@ -29,6 +29,5 @@ class GoogleSheets(GoogleService):
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers) as response:
                 data = await response.json()
-                print(data['values'])
-                return data['values']
+                return data['values'][1:]
 

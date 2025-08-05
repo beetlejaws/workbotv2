@@ -1,6 +1,7 @@
 .env
 credentials.json
 test.py
+sheets_ids.json
 
 venv/
 __pycache__/

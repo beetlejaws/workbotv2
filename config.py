@@ -34,6 +34,8 @@ class Config:
 def load_config(path: str | None = None) -> Config:
     env: Env = Env()
     env.read_env(path)
+    with open('sheets_ids.json', 'r') as file:
+        sheets_ids = json.load(file)
 
     return Config(
         bot=Bot(
@@ -47,6 +49,6 @@ def load_config(path: str | None = None) -> Config:
         ),
         google_service=GoogleService(
             credentials_path=env('GS_CREDENTIALS'),
-            sheets_ids=json.loads('SHEETS_IDS')
+            sheets_ids=sheets_ids
         )
     )
