@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 from environs import Env
+import json
 
 @dataclass
 class Bot:
     token: str
+
 
 @dataclass
 class Db:
@@ -15,10 +17,18 @@ class Db:
     def __post_init__(self):
         self.url = f'postgresql+asyncpg://{self.user}:{self.password}@{self.host}/{self.name}'
 
+
+@dataclass
+class GoogleService:
+    credentials_path: str
+    sheets_ids: dict
+
+
 @dataclass
 class Config:
     bot: Bot
     db: Db
+    gs: GoogleService
 
 
 def load_config(path: str | None = None) -> Config:
@@ -34,5 +44,9 @@ def load_config(path: str | None = None) -> Config:
             host=env('DB_HOST'),
             user=env('DB_USER'),
             password=env('DB_PASSWORD')
+        ),
+        gs=GoogleService(
+            credentials_path=env('GS_CREDENTIALS'),
+            sheets_ids=json.loads('SHEETS_IDS')
         )
     )
