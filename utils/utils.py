@@ -7,6 +7,7 @@ def convert_value(value: Any, column_type: type) -> Any:
     
     if value == '':
         value = None
+        return None
     if isinstance(column_type, Integer) or isinstance(column_type, BigInteger):
         value = int(value)
     elif isinstance(column_type, Boolean):

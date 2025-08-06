@@ -22,7 +22,7 @@ class Class_(Base):
     __tablename__ = 'classes'
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column()
+    title: Mapped[int] = mapped_column()
 
     courses: Mapped[list['CourseClass']] = relationship(back_populates='class_')
 

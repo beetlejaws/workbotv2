@@ -4,8 +4,8 @@ from db.requests import Database
 from services.google_services import GoogleSheets
 
 
-async def username_getter(dialog_manager: DialogManager, event_from_user: User, **kwargs):
-    return {'username': event_from_user.username}
+async def telegram_id_getter(dialog_manager: DialogManager, event_from_user: User, **kwargs):
+    event_from_user.username
 
 async def get_sheets_data(dialog_manager: DialogManager, sheets_ids: dict, **kwargs):
     sheets_data = list(sheets_ids.items())

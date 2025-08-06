@@ -5,6 +5,7 @@ import json
 @dataclass
 class Bot:
     token: str
+    admin_id: str
 
 
 @dataclass
@@ -39,7 +40,8 @@ def load_config(path: str | None = None) -> Config:
 
     return Config(
         bot=Bot(
-            token=env('BOT_TOKEN')
+            token=env('BOT_TOKEN'),
+            admin_id=env('ADMIN_ID')
         ),
         db=Db(
             name=env('DB_NAME'),
