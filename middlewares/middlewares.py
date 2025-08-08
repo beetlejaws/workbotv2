@@ -32,11 +32,11 @@ class UserMiddleware(BaseMiddleware):
         telegram_id = data['event_from_user'].id
 
         data['telegram_id'] = telegram_id
-        # try:
-        #     data['student_id'] = await db.get_student_id(telegram_id)
-        #     data['class_id'] = await db.get_student_class_id(telegram_id)
-        #     data['variant'] = await db.get_student_variant(telegram_id)
-        # except:
-        #     return await handler(event, data)
+        try:
+            data['student_id'] = await db.get_student_id(telegram_id)
+            data['class_id'] = await db.get_student_class_id(telegram_id)
+            data['variant'] = await db.get_student_variant(telegram_id)
+        except:
+            return await handler(event, data)
         
         return await handler(event, data)

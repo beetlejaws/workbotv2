@@ -99,3 +99,100 @@ class Database:
             select(Student.variant).where(Student.telegram_id == telegram_id)
         )
         return result.scalar()
+    
+    async def get_class_folder_id(self, class_id: int) -> str | None:
+        """
+        Возвращает id папки Google диска группы
+        """
+        result = await self.session.execute(
+            select(Class_.folder_id).where(Class_.id == class_id)
+        )
+        return result.scalar()
+
+    # async def get_courses_for_class(self, class_id: int) -> list[int]:
+    #     """
+    #     Возвращает список id курсов для указанного id группы
+    #     """
+    #     result = await self.session.execute(
+    #         select(CourseClass.course_id).where(CourseClass.class_id == class_id)
+    #     )
+    #     return sorted(result.scalars().all())
+    
+    async def get_course_title(self, course_id: int) -> str | None:
+        """
+        Возвращает название курса по указанному id курса
+        """
+        result = await self.session.execute(
+            select(Course.title).where(Course.id == course_id)
+        )
+        return result.scalar()
+    
+    async def get_object_id(self, course_id: int, class_id: int) -> int | None:
+        """
+        Возвращает id дисциплины для указанного id курса и id группы
+        """
+        result = await self.session.execute(
+            select(CourseClass.id).where(
+                CourseClass.course_id == course_id, CourseClass.class_id == class_id
+            )
+        )
+        return result.scalar()
+    
+    async def get_folder_id_by_object(self, object_id: int) -> str | None:
+        result = await self.session.execute(
+            select(CourseClass.folder_id).where(CourseClass.id == object_id)
+        )
+        return result.scalar()
+    
+    async def get_courses_for_class(self, class_id: int):
+    
+        query = (
+            select(Course.title, CourseClass.id)
+            .join(CourseClass, CourseClass.course_id == Course.id)
+            .where(CourseClass.class_id == class_id)
+            .order_by(CourseClass.id)
+        )
+        
+        result = await self.session.execute(query)
+        return result.all()
+    
+    async def get_lessons_by_period(
+    self, 
+    object_ids: list[int], 
+    start_date: datetime.date, 
+    end_date: datetime.date
+    ) -> list[dict]:
+    
+        if not object_ids:
+            return []
+
+        query = (
+            select(
+                Schedule,
+                Course.title.label("course_title")
+            )
+            .join(CourseClass, Schedule.id == CourseClass.id)
+            .join(Course, CourseClass.course_id == Course.id)
+            .where(
+                Schedule.id.in_(object_ids),
+                Schedule.date.between(start_date, end_date)
+            )
+            .order_by(Schedule.date, Schedule.time)
+        )
+    
+        result = await self.session.execute(query)
+        lessons_data = result.all()
+        
+        lessons_list = []
+        for schedule, course_title in lessons_data:
+            lessons_list.append({
+                'id': schedule.id,
+                'number': schedule.number,
+                'date': schedule.date,
+                'time': schedule.time,
+                'lesson_title': schedule.title,
+                'is_work': schedule.is_work,
+                "course_title": course_title
+            })
+
+        return lessons_list

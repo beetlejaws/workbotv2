@@ -6,7 +6,7 @@ from dialogs.setup import setup_my_dialogs
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from middlewares.middlewares import DatabaseMiddleware, UserMiddleware
 import handlers
-from services.google_services import GoogleSheets
+from services.google_services import GoogleSheets, GoogleDrive
 
 async def main():
 
@@ -17,11 +17,19 @@ async def main():
 
     bot = Bot(token=config.bot.token)
     gs = GoogleSheets(config.google_service.credentials_path)
+    gd = GoogleDrive(config.google_service.credentials_path)
     sheets_ids: dict = config.google_service.sheets_ids
 
     dp = Dispatcher()
     
-    dp.workflow_data.update({'gs': gs, 'sheets_ids': sheets_ids, 'admin_id': config.bot.admin_id})
+    dp.workflow_data.update(
+        {'gs': gs,
+         'gd': gd,
+         'sheets_ids': sheets_ids,
+         'admin_id': config.bot.admin_id,
+         'first_workday': config.calendar.first_workday,
+         'last_workday': config.calendar.last_workday}
+    )
 
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)

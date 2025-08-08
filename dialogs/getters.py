@@ -1,7 +1,11 @@
+import asyncio
 from aiogram.types import User
 from aiogram_dialog import DialogManager
+from aiogram_dialog.widgets.kbd import ManagedRadio
 from db.requests import Database
-from services.google_services import GoogleSheets
+from services.google_services import GoogleSheets, GoogleDrive
+from datetime import date
+from utils.utils import *
 
 
 async def telegram_id_getter(dialog_manager: DialogManager, event_from_user: User, **kwargs):
@@ -10,3 +14,103 @@ async def telegram_id_getter(dialog_manager: DialogManager, event_from_user: Use
 async def get_sheets_data(dialog_manager: DialogManager, sheets_ids: dict, **kwargs):
     sheets_data = list(sheets_ids.items())
     return {'sheets_data': sheets_data}
+
+async def folder_id_getter(dialog_manager: DialogManager, db: Database, class_id: int, **kwargs):
+    folder_id = await db.get_class_folder_id(class_id)
+    return {'folder_id': folder_id}
+
+# async def schedule_getter(dialog_manager: DialogManager, db: Database, gd: GoogleDrive, class_id: int, first_workday: date, last_workday: date, **kwargs):
+#     if dialog_manager.dialog_data.get('current_month') is None:
+#         current_month = dialog_manager.dialog_data['current_month'] = date.today().month
+#     else:
+#         current_month = dialog_manager.dialog_data['current_month']
+
+#     months = {1: 'ЯНВ', 2: 'ФЕВ', 3: 'МАР', 4: 'АПР',
+#               5: 'МАЙ', 6: 'ИЮН', 7: 'ИЮЛ', 8: 'АВГ',
+#               9: 'СЕН', 10: 'ОКТ', 11: 'НОЯ', 12: 'ДЕК'}
+#     first_month = first_workday.month
+#     last_month = last_workday.month
+#     months_names = [(months[i], i) for i in range(first_month, last_month + 1)]
+
+    
+#     courses_data = await db.get_courses_for_class(class_id)
+#     if dialog_manager.dialog_data.get('chosen_courses') is None:
+#         dialog_manager.dialog_data['chosen_courses'] = [i[1] for i in courses_data]
+    
+#     lessons_info = []
+    
+#     chosen_courses_ids = dialog_manager.dialog_data['chosen_courses']
+#     if chosen_courses_ids:
+#         start_date = get_first_day_of_month(current_month)
+#         end_date = get_last_day_of_month(current_month)
+#         lessons_data = await db.get_lessons_by_period(chosen_courses_ids, start_date, end_date)
+
+#         async def process_lesson(lesson: dict) -> str:
+#             number = lesson['number']
+#             folder_id = await db.get_folder_id_by_object(lesson['id'])
+#             file_name = (f'Занятие {number}' if number > 9 else f'Занятие 0{number}') + '.pdf'
+#             file_id = await gd.get_file_id_by_name(file_name, folder_id)  # type: ignore
+            
+#             if file_id is not None:
+#                 file_link = await gd.get_file_link(file_id)
+#                 return f'<a href="{file_link}">{combine_lesson_info(lesson)}</a>'
+#             return combine_lesson_info(lesson)
+        
+#         tasks = [process_lesson(lesson) for lesson in lessons_data]
+#         lessons_info = await asyncio.gather(*tasks)
+    
+#     return {'lessons_info': lessons_info,
+#             'months_names': months_names,
+#             'courses': courses_data,
+#             'show_mode': len(chosen_courses_ids) > 0}
+
+async def schedule_getter(dialog_manager: DialogManager, db: Database, gd: GoogleDrive, class_id: int, first_workday: date, last_workday: date, **kwargs):
+    if dialog_manager.dialog_data.get('current_month') is None:
+        current_month = dialog_manager.dialog_data['current_month'] = date.today().month
+        radio_month: ManagedRadio = dialog_manager.find('month') # type: ignore
+        await radio_month.set_checked(current_month)
+    else:
+        current_month = dialog_manager.dialog_data['current_month']
+
+    months = {1: 'ЯНВ', 2: 'ФЕВ', 3: 'МАР', 4: 'АПР',
+              5: 'МАЙ', 6: 'ИЮН', 7: 'ИЮЛ', 8: 'АВГ',
+              9: 'СЕН', 10: 'ОКТ', 11: 'НОЯ', 12: 'ДЕК'}
+    first_month = first_workday.month
+    last_month = last_workday.month
+    months_names = [(months[i], i) for i in range(first_month, last_month + 1)]
+
+    
+    courses_data = await db.get_courses_for_class(class_id)
+    if dialog_manager.dialog_data.get('chosen_course') is None:
+        radio_course: ManagedRadio = dialog_manager.find('chosen_course') # type: ignore
+        chosen_course = courses_data[0][1]
+        dialog_manager.dialog_data['chosen_course'] = chosen_course
+        await radio_course.set_checked(chosen_course)
+    else:
+        chosen_course = dialog_manager.dialog_data['chosen_course']
+
+    lessons_info = []
+    
+    folder_id = await db.get_folder_id_by_object(chosen_course)
+
+    start_date = get_first_day_of_month(current_month)
+    end_date = get_last_day_of_month(current_month)
+    lessons_data = await db.get_lessons_by_period([chosen_course], start_date, end_date)
+
+    async def process_lesson(lesson: dict) -> str:
+        number = lesson['number']
+        file_name = (f'Занятие {number}' if number > 9 else f'Занятие 0{number}') + '.pdf'
+        file_id = await gd.get_file_id_by_name(file_name, folder_id)  # type: ignore
+        
+        if file_id is not None:
+            file_link = await gd.get_file_link(file_id)
+            return f'<a href="{file_link}">{combine_lesson_info(lesson)}</a>'
+        return combine_lesson_info(lesson)
+        
+    tasks = [process_lesson(lesson) for lesson in lessons_data]
+    lessons_info = await asyncio.gather(*tasks)
+    
+    return {'lessons_info': lessons_info,
+            'months_names': months_names,
+            'courses': courses_data
+    }

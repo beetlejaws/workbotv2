@@ -23,6 +23,7 @@ class Class_(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[int] = mapped_column()
+    folder_id: Mapped[str] = mapped_column()
 
     courses: Mapped[list['CourseClass']] = relationship(back_populates='class_')
 
@@ -33,6 +34,7 @@ class  CourseClass(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     course_id: Mapped[int] = mapped_column(ForeignKey('courses.id'))
     class_id: Mapped[int] = mapped_column(ForeignKey('classes.id'))
+    folder_id: Mapped[str] = mapped_column()
 
     course: Mapped['Course'] = relationship(back_populates='classes')
     class_: Mapped['Class_'] = relationship(back_populates='courses')

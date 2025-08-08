@@ -1,6 +1,6 @@
 from aiogram.types import Message, CallbackQuery, InaccessibleMessage
 from aiogram_dialog import DialogManager, StartMode
-from aiogram_dialog.widgets.kbd import Button, Select
+from aiogram_dialog.widgets.kbd import Button, Select, Multiselect, ManagedMultiselect, ManagedRadio
 from aiogram_dialog.widgets.input import MessageInput
 from dialogs.states import *
 from db.requests import Database
@@ -44,6 +44,18 @@ async def go_back(callback: CallbackQuery, button: Button, dialog_manager: Dialo
 async def go_next(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
     await dialog_manager.next()
 
+async def go_soon_tasks(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
+    await dialog_manager.done()
+
+async def go_schedule(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
+    await dialog_manager.start(ScheduleSG.show)
+
+async def start_sending_work(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
+    await dialog_manager.done()
+
+async def go_settings(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
+    await dialog_manager.done()
+
 async def go_to_sheets(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
     await dialog_manager.start(SheetsSG.start)
 
@@ -66,3 +78,20 @@ async def sheet_selection(callback: CallbackQuery, widget: Select, dialog_manage
             text='Произошла ошибка при обновлении',
             show_alert=True
             )
+        
+async def month_selection(callback: CallbackQuery, widget: ManagedRadio, dialog_manager: DialogManager, item_id: str):
+    dialog_manager.dialog_data['current_month'] = int(item_id)
+
+# async def courses_selection(callback: CallbackQuery, widget: ManagedMultiselect, dialog_manager: DialogManager, item_id: str):
+#     chosen_courses: list = dialog_manager.dialog_data['chosen_courses']
+#     if int(item_id) in chosen_courses:
+#         chosen_courses.remove(int(item_id))
+#     else:
+#         chosen_courses.append(int(item_id))
+#         chosen_courses.sort()
+#     dialog_manager.dialog_data['chosen_courses'] = chosen_courses
+
+async def course_selection(callback: CallbackQuery, widget: ManagedRadio, dialog_manager: DialogManager, item_id: str):
+    # chosen_course = int(widget.get_checked()) # type: ignore
+    # dialog_manager.dialog_data['chosen_course'] = chosen_course
+    dialog_manager.dialog_data['chosen_course'] = int(item_id)

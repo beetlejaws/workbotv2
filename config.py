@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 from environs import Env
+from datetime import date
 import json
 
 @dataclass
 class Bot:
     token: str
-    admin_id: str
+    admin_id: int
 
 
 @dataclass
@@ -24,12 +25,18 @@ class GoogleService:
     credentials_path: str
     sheets_ids: dict
 
+@dataclass
+class Calendar:
+    first_workday: date
+    last_workday: date
+
 
 @dataclass
 class Config:
     bot: Bot
     db: Db
     google_service: GoogleService
+    calendar: Calendar
 
 
 def load_config(path: str | None = None) -> Config:
@@ -41,7 +48,7 @@ def load_config(path: str | None = None) -> Config:
     return Config(
         bot=Bot(
             token=env('BOT_TOKEN'),
-            admin_id=env('ADMIN_ID')
+            admin_id=int(env('ADMIN_ID'))
         ),
         db=Db(
             name=env('DB_NAME'),
@@ -52,5 +59,9 @@ def load_config(path: str | None = None) -> Config:
         google_service=GoogleService(
             credentials_path=env('GS_CREDENTIALS'),
             sheets_ids=sheets_ids
+        ),
+        calendar=Calendar(
+            first_workday=date.fromisoformat(env('FIRST_WORKDAY')),
+            last_workday=date.fromisoformat(env('LAST_WORKDAY'))
         )
     )

@@ -15,3 +15,6 @@ class AuthSG(StatesGroup):
 
 class SheetsSG(StatesGroup):
     start = State()
+
+class ScheduleSG(StatesGroup):
+    show = State()

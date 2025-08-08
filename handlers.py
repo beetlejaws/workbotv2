@@ -2,7 +2,7 @@ from aiogram import Router
 from aiogram.filters import CommandStart
 from aiogram.types import Message
 from aiogram_dialog import DialogManager, StartMode
-from dialogs.states import StartSG
+from dialogs.states import StartSG, SheetsSG
 from db.requests import Database
 
 router = Router()
@@ -15,7 +15,7 @@ async def start_message(message: Message, dialog_manager: DialogManager, db: Dat
     telegram_id = message.from_user.id
     if telegram_id == admin_id:
         await dialog_manager.start(
-            state=StartSG.admin,
+            state=SheetsSG.start,
             mode=StartMode.RESET_STACK
         )
     elif await db.get_student_id(telegram_id) is not None:
