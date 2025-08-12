@@ -1,5 +1,6 @@
 from typing import Any
-from datetime import date, time, timedelta
+import pytz
+from datetime import datetime, date, time, timedelta
 from sqlalchemy import Integer, BigInteger, Date, Time, Boolean
 from services.google_services import GoogleDrive
 
@@ -39,3 +40,12 @@ def convert_value(value: Any, column_type: type) -> Any:
     elif isinstance(column_type, Time):
         value = time.fromisoformat(value)
     return value
+
+def convert_to_local_time(iso_time_str: str) -> str:
+    utc_time = datetime.fromisoformat(iso_time_str.replace("Z", "+00:00"))
+
+    local_timezone = pytz.timezone("Europe/Moscow")
+
+    local_time = utc_time.astimezone(local_timezone)
+
+    return local_time.strftime("%d.%m.%Y %H:%M:%S")

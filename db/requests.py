@@ -127,6 +127,15 @@ class Database:
         )
         return result.scalar()
     
+    async def get_class_title(self, class_id: int) -> int | None:
+        """
+        Возвращает название группы по указанному id группы
+        """
+        result = await self.session.execute(
+            select(Class_.title).where(Class_.id == class_id)
+        )
+        return result.scalar()
+    
     async def get_object_id(self, course_id: int, class_id: int) -> int | None:
         """
         Возвращает id дисциплины для указанного id курса и id группы
@@ -169,7 +178,7 @@ class Database:
         query = (
             select(
                 Schedule,
-                Course.title.label("course_title")
+                Course.title.label('course_title')
             )
             .join(CourseClass, Schedule.id == CourseClass.id)
             .join(Course, CourseClass.course_id == Course.id)
@@ -196,3 +205,36 @@ class Database:
             })
 
         return lessons_list
+    
+    async def get_active_tests(self, class_id: int):
+
+        now = datetime.datetime.now()
+        query = (
+            select(Test, Course.title.label('course_title')
+            )
+            .join(Course, Test.course_id == Course.id)
+            .join(CourseClass, Test.course_id == CourseClass.course_id)
+            .where(
+                CourseClass.class_id == class_id,
+                Test.start_date <= now.date(),
+                Test.start_time <= now.time(),
+                Test.end_date >= now.date(),
+                Test.end_time >= now.time()
+                   )
+            .order_by(Test.end_date, Test.end_time)
+        )
+
+        result = await self.session.execute(query)
+        tests_data = result.all()
+
+        tests_dict = {}
+        for test, course_title in tests_data:
+            tests_dict[test.id] = {
+                'course_title': course_title,
+                'test_title': test.title,
+                'end_date': test.end_date,
+                'end_time': test.end_time,
+                'public_folder_id': test.public_folder_id,
+                'private_folder_id': test.private_folder_id
+            }
+        return tests_dict

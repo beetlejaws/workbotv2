@@ -3,7 +3,7 @@ from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.text import Const, Format, Case, List, Jinja
 from aiogram_dialog.widgets.kbd import Button, Group, Select, Url, Multiselect, Radio
 from aiogram_dialog.widgets.input import MessageInput
-from dialogs.states import StartSG, SheetsSG
+from dialogs.states import *
 from dialogs.getters import *
 from dialogs.handlers import *
 
@@ -137,9 +137,88 @@ schedule_dialog = Dialog(
             items='courses',
             on_state_changed=course_selection # type: ignore
         ),
+        Button(
+            text=Const('⬅️ Назад'),
+            id='back_btn',
+            on_click=close_dialog
+        ),
         parse_mode='HTML',
         state=ScheduleSG.show,
         getter=schedule_getter
     )
 )
 
+send_work_dialog = Dialog(
+    Window(
+        Case(
+            texts={
+                True: Const('Выбери работу, решение которой хочешь отправить'),
+                False: Const('Сейчас нет доступной работы, решение которой можно отправить')
+            },
+            selector='show_mode'
+        ),
+        Group(
+            Select(
+                Format('{item[1]} {item[2]}'),
+                id='test',
+                item_id_getter=lambda x: x[0],
+                items='tests',
+                when='show_mode',
+                on_click=choose_sending_work
+            ),
+            width=1
+        ),
+        Button(
+            text=Const('⬅️ Назад'),
+            id='back_btn',
+            on_click=close_dialog
+        ),
+        state=SendWorkSG.show_tests,
+        getter=send_work_getter
+    ),
+    Window(
+        Format(
+            text='Прошлое решение было отправлено {time}',
+            when='time'
+        ),
+        Const('Отправь мне файл с решением в формате PDF и размером не более 20MB или нажми кнопку "Отмена"'),
+        MessageInput(
+            func=document_check,
+            content_types=ContentType.DOCUMENT,
+        ),
+        MessageInput(
+            func=fail_document_check,
+            content_types=ContentType.ANY,
+        ),
+        Button(
+            text=Const('Отмена'),
+            id='cancel_btn',
+            on_click=go_back
+        ),
+        state=SendWorkSG.start_sending,
+        getter=info_for_sending_getter
+    ),
+    Window(
+        Format('{text}'),
+        MessageInput(
+            func=document_check,
+            content_types=ContentType.DOCUMENT,
+        ),
+        MessageInput(
+            func=fail_document_check,
+            content_types=ContentType.ANY,
+        ),
+        Button(
+            text=Const('Отмена'),
+            id='cancel_btn',
+            on_click=start_sending_work
+        ),
+        state=SendWorkSG.fail_sending,
+        getter=fail_text_getter
+    ),
+    Window(
+        Format('Файл отправлен. Время отправления - {time}'),
+        state=SendWorkSG.success_sending,
+        getter=sending_time_getter
+    )
+)

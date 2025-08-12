@@ -1,10 +1,13 @@
+
+from io import BytesIO
+from aiogram import Bot
 from aiogram.types import Message, CallbackQuery, InaccessibleMessage
 from aiogram_dialog import DialogManager, StartMode
 from aiogram_dialog.widgets.kbd import Button, Select, Multiselect, ManagedMultiselect, ManagedRadio
 from aiogram_dialog.widgets.input import MessageInput
 from dialogs.states import *
 from db.requests import Database
-from services.google_services import GoogleSheets
+from services.google_services import GoogleSheets, GoogleDrive
 
 
 async def start_auth(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
@@ -51,7 +54,7 @@ async def go_schedule(callback: CallbackQuery, button: Button, dialog_manager: D
     await dialog_manager.start(ScheduleSG.show)
 
 async def start_sending_work(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-    await dialog_manager.done()
+    await dialog_manager.start(SendWorkSG.show_tests)
 
 async def go_settings(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
     await dialog_manager.done()
@@ -92,6 +95,43 @@ async def month_selection(callback: CallbackQuery, widget: ManagedRadio, dialog_
 #     dialog_manager.dialog_data['chosen_courses'] = chosen_courses
 
 async def course_selection(callback: CallbackQuery, widget: ManagedRadio, dialog_manager: DialogManager, item_id: str):
-    # chosen_course = int(widget.get_checked()) # type: ignore
-    # dialog_manager.dialog_data['chosen_course'] = chosen_course
     dialog_manager.dialog_data['chosen_course'] = int(item_id)
+
+async def choose_sending_work(callback: CallbackQuery, widget: Select, dialog_manager: DialogManager, item_id: str):
+    dialog_manager.dialog_data['chosen_test'] = int(item_id)
+    await dialog_manager.next()
+
+async def document_check(message: Message, widget: MessageInput, dialog_manager: DialogManager):
+    bot: Bot = dialog_manager.middleware_data['bot']
+    MAX_FILE_SIZE = 20 * 1024 * 1024
+    document = message.document
+    if not document:
+        return
+    
+    file_size = document.file_size
+    file_info = await bot.get_file(document.file_id)
+    file = await bot.download_file(file_info.file_path) # type: ignore
+
+    if file_size > MAX_FILE_SIZE: # type: ignore
+        dialog_manager.dialog_data['fail_text'] = 'Этот файл слишком большой. Отправь файл весом не более 20MB'
+        await dialog_manager.switch_to(SendWorkSG.fail_sending)
+    elif document.mime_type != 'application/pdf':
+        dialog_manager.dialog_data['fail_text'] = 'Я принимаю файлы только в формате PDF. Отправь файл ещё раз в нужном формате'
+        await dialog_manager.next()
+    else:
+        file_name = dialog_manager.dialog_data['file_name']
+        folder_id = dialog_manager.dialog_data['folder_id']
+        file_content = BytesIO(file.read()) # type: ignore
+        gd: GoogleDrive = dialog_manager.middleware_data['gd']
+        previous_versions = await gd.get_files_by_name(file_name, folder_id)
+        if len(previous_versions) > 0:
+            file_name += f'_v{len(previous_versions) + 1}'
+
+        await gd.upload_file(f'{file_name}.pdf', file_content, folder_id)
+
+        await dialog_manager.switch_to(SendWorkSG.success_sending)
+
+async def fail_document_check(message: Message, widget: MessageInput, dialog_manager: DialogManager):
+    dialog_manager.dialog_data['fail_text'] = '''В качестве решения я принимаю только файл. 
+Отправь мне файл с решением в формате PDF и размером не более 20MB или нажми кнопку "Отмена"'''
+    await dialog_manager.switch_to(SendWorkSG.fail_sending)

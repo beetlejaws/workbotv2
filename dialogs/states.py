@@ -18,3 +18,9 @@ class SheetsSG(StatesGroup):
 
 class ScheduleSG(StatesGroup):
     show = State()
+
+class SendWorkSG(StatesGroup):
+    show_tests = State()
+    start_sending = State()
+    fail_sending = State()
+    success_sending = State()

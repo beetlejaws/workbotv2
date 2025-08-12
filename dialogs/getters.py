@@ -114,3 +114,52 @@ async def schedule_getter(dialog_manager: DialogManager, db: Database, gd: Googl
             'months_names': months_names,
             'courses': courses_data
     }
+
+async def send_work_getter(dialog_manager: DialogManager, db: Database, class_id: int, **kwargs):
+    tests_data = await db.get_active_tests(class_id)
+    dialog_manager.dialog_data['tests_data'] = tests_data
+    if tests_data is None or not tests_data:
+        show_mode = False
+        tests = None
+    else:
+        show_mode = True
+        tests = list(map(lambda x: (x, tests_data[x]['course_title'], tests_data[x]['test_title']), tests_data.keys()))
+
+    return {
+        'show_mode': show_mode,
+        'tests': tests
+    }
+
+async def info_for_sending_getter(dialog_manager: DialogManager, db: Database, gd: GoogleDrive, telegram_id: int, class_id: int, variant: int, **kwargs):
+    chosen_test_id = dialog_manager.dialog_data['chosen_test']
+    info = dialog_manager.dialog_data['tests_data'][chosen_test_id]
+    full_name = await db.get_str_full_name(telegram_id)
+    class_title = await db.get_class_title(class_id)
+
+    file_name = f'{info['course_title']} {info['test_title']} {class_title} {full_name} {variant}'
+    dialog_manager.dialog_data['file_name'] = file_name
+    folder_id = info['private_folder_id']
+    dialog_manager.dialog_data['folder_id'] = folder_id
+
+    time = await gd.get_latest_version_date(file_name, folder_id)
+    if time is not None:
+        time = convert_to_local_time(time)
+    
+    return {
+        'time': time
+    }
+
+async def fail_text_getter(dialog_manager: DialogManager, **kwargs):
+    text = dialog_manager.dialog_data['fail_text']
+    return {
+        'text': text
+    }
+
+async def sending_time_getter(dialog_manager: DialogManager, gd: GoogleDrive, **kwargs):
+    file_name = dialog_manager.dialog_data['file_name']
+    folder_id = dialog_manager.dialog_data['folder_id']
+    time_iso = await gd.get_latest_version_date(file_name, folder_id)
+    time = convert_to_local_time(time_iso) # type: ignore
+    return {
+        'time': time
+    }

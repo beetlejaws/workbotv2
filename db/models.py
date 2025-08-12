@@ -61,6 +61,8 @@ class Test(Base):
     start_time: Mapped[datetime.time] = mapped_column()
     end_date: Mapped[datetime.date] = mapped_column()
     end_time: Mapped[datetime.time] = mapped_column()
+    public_folder_id: Mapped[str] = mapped_column()
+    private_folder_id: Mapped[str] = mapped_column()
 
 
 class Schedule(Base):
