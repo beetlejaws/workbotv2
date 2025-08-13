@@ -24,3 +24,6 @@ class SendWorkSG(StatesGroup):
     start_sending = State()
     fail_sending = State()
     success_sending = State()
+
+class SoonSG(StatesGroup):
+    show = State()

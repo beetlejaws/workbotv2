@@ -9,4 +9,5 @@ def setup_my_dialogs(dp: Dispatcher) -> None:
     dp.include_router(sheets_dialog)
     dp.include_router(schedule_dialog)
     dp.include_router(send_work_dialog)
+    dp.include_router(soon_dialog)
     setup_dialogs(dp)

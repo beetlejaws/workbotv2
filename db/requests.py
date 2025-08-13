@@ -206,23 +206,36 @@ class Database:
 
         return lessons_list
     
-    async def get_active_tests(self, class_id: int):
-
-        now = datetime.datetime.now()
-        query = (
-            select(Test, Course.title.label('course_title')
+    async def get_active_tests(self, class_id: int, start_date: datetime.date | None = None, end_date: datetime.date | None = None):
+        if start_date is None:
+            now = datetime.datetime.now()
+            query = (
+                select(Test, Course.title.label('course_title')
+                )
+                .join(Course, Test.course_id == Course.id)
+                .join(CourseClass, Test.course_id == CourseClass.course_id)
+                .where(
+                    CourseClass.class_id == class_id,
+                    Test.start_date <= now.date(),
+                    Test.start_time <= now.time(),
+                    Test.end_date >= now.date(),
+                    Test.end_time >= now.time()
+                    )
+                .order_by(Test.end_date, Test.end_time)
             )
-            .join(Course, Test.course_id == Course.id)
-            .join(CourseClass, Test.course_id == CourseClass.course_id)
-            .where(
-                CourseClass.class_id == class_id,
-                Test.start_date <= now.date(),
-                Test.start_time <= now.time(),
-                Test.end_date >= now.date(),
-                Test.end_time >= now.time()
-                   )
-            .order_by(Test.end_date, Test.end_time)
-        )
+        else:
+            query = (
+                select(Test, Course.title.label('course_title')
+                )
+                .join(Course, Test.course_id == Course.id)
+                .join(CourseClass, Test.course_id == CourseClass.course_id)
+                .where(
+                    CourseClass.class_id == class_id,
+                    Test.end_date >= start_date,
+                    Test.end_date <= end_date,
+                    )
+                .order_by(Test.end_date, Test.end_time)
+            )
 
         result = await self.session.execute(query)
         tests_data = result.all()

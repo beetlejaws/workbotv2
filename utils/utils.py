@@ -15,7 +15,15 @@ def combine_lesson_info(lesson: dict) -> str:
     course_title = lesson['course_title']
     number = lesson['number']
     lesson_title = lesson['lesson_title']
-    return f'{is_work}{day} {start_time} {course_title} {number} "{lesson_title}"'
+    return f'{is_work}{day} {start_time} {course_title} Занятие № {number}\n"{lesson_title}"'
+
+def combine_test_info(test: dict) -> str:
+    day = date.strftime(test['end_date'], '%d.%m')
+    end_time = time.strftime(test['end_time'], '%H:%M')
+    course_title = test['course_title']
+    test_title = test['test_title']
+    return f'{day} {end_time}\n{course_title} {test_title}'
+
 
 def get_first_day_of_month(month: int) -> date:
     year = date.today().year
@@ -24,6 +32,10 @@ def get_first_day_of_month(month: int) -> date:
 def get_last_day_of_month(month: int) -> date:
     year = date.today().year
     return date(year, month + 1, 1) - timedelta(days=1)
+
+def get_last_day_of_week(day: date) -> date:
+    number = day.isoweekday()
+    return day + timedelta(days=7 - number)
 
 
 def convert_value(value: Any, column_type: type) -> Any:

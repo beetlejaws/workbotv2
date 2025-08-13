@@ -22,7 +22,7 @@ start_dialog = Dialog(
         Const('Нажми на одну из кнопок, чтобы открыть необходимый тебе раздел'),
         Group(
             Button(
-                Const('Ближайшее'),
+                Const('🔜 Ближайшее'),
                 id='soon_tasks',
                 on_click=go_soon_tasks
             ),
@@ -220,5 +220,45 @@ send_work_dialog = Dialog(
         Format('Файл отправлен. Время отправления - {time}'),
         state=SendWorkSG.success_sending,
         getter=sending_time_getter
+    )
+)
+
+soon_dialog = Dialog(
+    Window(
+        Case(
+            texts={
+                True: List(
+                    field=Format('{item}'),
+                    items='info',
+                    sep='\n\n',
+                ),
+                False: Const('За указанный период ничего не найдено'),
+            },
+            selector='check'
+        ),
+        Radio(
+            checked_text=Format('🔘 {item[0]}'),
+            unchecked_text=Format('{item[0]}'),
+            id='period',
+            item_id_getter=lambda x: x[1],
+            items='periods',
+            on_state_changed=period_selection # type: ignore
+        ),
+        Radio(
+            checked_text=Format('🔘 {item[0]}'),
+            unchecked_text=Format('{item[0]}'),
+            id='mode',
+            item_id_getter=lambda x: x[1],
+            items='modes',
+            on_state_changed=mode_selection # type: ignore
+        ),
+        Button(
+            text=Const('⬅️ Назад'),
+            id='back_btn',
+            on_click=close_dialog
+        ),
+        state=SoonSG.show,
+        getter=soon_getter,
+        parse_mode='HTML'
     )
 )

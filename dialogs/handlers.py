@@ -48,7 +48,7 @@ async def go_next(callback: CallbackQuery, button: Button, dialog_manager: Dialo
     await dialog_manager.next()
 
 async def go_soon_tasks(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-    await dialog_manager.done()
+    await dialog_manager.start(SoonSG.show)
 
 async def go_schedule(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
     await dialog_manager.start(ScheduleSG.show)
@@ -135,3 +135,9 @@ async def fail_document_check(message: Message, widget: MessageInput, dialog_man
     dialog_manager.dialog_data['fail_text'] = '''В качестве решения я принимаю только файл. 
 Отправь мне файл с решением в формате PDF и размером не более 20MB или нажми кнопку "Отмена"'''
     await dialog_manager.switch_to(SendWorkSG.fail_sending)
+
+async def mode_selection(callback: CallbackQuery, widget: ManagedRadio, dialog_manager: DialogManager, item_id: str):
+    dialog_manager.dialog_data['current_mode'] = item_id
+
+async def period_selection(callback: CallbackQuery, widget: ManagedRadio, dialog_manager: DialogManager, item_id: str):
+    dialog_manager.dialog_data['current_period'] = item_id
