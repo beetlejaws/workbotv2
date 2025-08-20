@@ -21,6 +21,18 @@ class Db:
 
 
 @dataclass
+class NatsConfig:
+    servers: list[str]
+
+
+@dataclass
+class NatsConsumerConfig:
+    subject: str
+    stream: str
+    durable_name: str
+
+
+@dataclass
 class GoogleService:
     credentials_path: str
     sheets_ids: dict
@@ -37,6 +49,8 @@ class Config:
     db: Db
     google_service: GoogleService
     calendar: Calendar
+    nats: NatsConfig
+    consumer: NatsConsumerConfig
 
 
 def load_config(path: str | None = None) -> Config:
@@ -55,6 +69,12 @@ def load_config(path: str | None = None) -> Config:
             host=env('DB_HOST'),
             user=env('DB_USER'),
             password=env('DB_PASSWORD')
+        ),
+        nats=NatsConfig(servers=env.list('NATS_SERVERS')),
+        consumer = NatsConsumerConfig(
+            subject=env('NATS_SUBJECT'),
+            stream='NATS_STREAM',
+            durable_name=env('NATS_CONSUMER_DURABLE_NAME')
         ),
         google_service=GoogleService(
             credentials_path=env('GS_CREDENTIALS'),

@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import delete, insert, update
 from sqlalchemy.future import select
 from utils.utils import convert_value
+from db.views import StudentUser, Subject
 
 
 class Database:
@@ -46,17 +47,53 @@ class Database:
             print(e)
             return False
         
-    async def add_telegram_id(self, student_id: int, telegram_id: int) -> None:
+    async def add_telegram_id(self, student_id: int, telegram_id: int) -> StudentUser:
         """
-        Добавляет в базу данных telegram_id профиля к студенту с указанным student_id
+        Добавляет в базу данных telegram_id профиля к студенту с указанным student_id и возвращает экземпляр класса StudentUser
         """
         result = await self.session.execute(
                 update(Student).where(Student.id == student_id).values(telegram_id=telegram_id)
             )
-        print(result.rowcount)
         if result.rowcount == 0:
             raise ValueError
         await self.session.commit()
+        return await self.get_student_by_telegram_id(telegram_id)
+
+    async def get_student_by_telegram_id(self, telegram_id):
+        student_result = await self.session.execute(
+            select(Student).where(Student.telegram_id == telegram_id)
+        )
+        student = student_result.scalar_one_or_none()
+
+        if student is None:
+            return None
+
+        subject_ids_result = await self.session.execute(
+            select(CourseClass.id).where(CourseClass.class_id == student.class_id)
+        )
+        subject_ids = subject_ids_result.scalars().all()
+
+        student_user = StudentUser.model_validate(student)
+        student_user.subject_ids = subject_ids
+
+        return student_user
+    
+    async def get_subject_by_id(self, subject_id: int) -> Subject:
+        
+        query = (
+            select(CourseClass, Course.title, Class_.title)
+            .join(Course, Course.id == CourseClass.course_id)
+            .join(Class_, Class_.id == CourseClass.class_id)
+            .where(CourseClass.id == subject_id)
+            .order_by(CourseClass.id)
+        )
+
+        result = await self.session.execute(query)
+        for subject_data, course_title, class_title in result.all():
+            subject = Subject.model_validate(subject_data)
+            subject.course_title = course_title
+            subject.class_title = class_title
+            return subject
         
     async def get_student_id(self, telegram_id: int) -> int | None:
         """

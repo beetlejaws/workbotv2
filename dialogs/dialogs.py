@@ -33,7 +33,7 @@ start_dialog = Dialog(
             ),
             Url(
                 Const('🗂 Google диск'),
-                Format('https://drive.google.com/drive/folders/{folder_id}')
+                Format('{folder_link}')
             ),
             Button(
                 Const('Отправить работу'),
@@ -47,7 +47,7 @@ start_dialog = Dialog(
             )
         ),
         state=StartSG.student,
-        getter=folder_id_getter
+        getter=folder_link_getter
     ),
     Window(
         Const('Ты админ'),

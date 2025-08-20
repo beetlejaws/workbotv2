@@ -44,6 +44,10 @@ class GoogleDrive(GoogleService):
         self.url = 'https://www.googleapis.com/drive/v3/files'
 
     @staticmethod
+    def get_folder_link(folder_id: str) -> str:
+        return f'https://drive.google.com/drive/folders/{folder_id}'
+    
+    @staticmethod
     async def get_file_link(file_id: str) -> str:
         return f"https://drive.google.com/file/d/{file_id}/view"
 

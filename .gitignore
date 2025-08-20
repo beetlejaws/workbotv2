@@ -5,3 +5,6 @@ sheets_ids.json
 
 venv/
 __pycache__/
+
+nats/
+nui/

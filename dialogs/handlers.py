@@ -16,16 +16,17 @@ async def start_auth(callback: CallbackQuery, button: Button, dialog_manager: Di
     await dialog_manager.start(AuthSG.start)
 
 async def student_id_check(message: Message, widget: MessageInput, dialog_manager: DialogManager):
+    
     db: Database = dialog_manager.middleware_data['db']
     telegram_id = dialog_manager.middleware_data['telegram_id']
-    if message.text:
+
+    try:
         student_id = int(message.text)
-        try:
-            await db.add_telegram_id(student_id, telegram_id)
-            dialog_manager.dialog_data['full_name'] = await db.get_str_full_name(telegram_id)
-            await dialog_manager.switch_to(AuthSG.success)
-        except:
-            await dialog_manager.switch_to(AuthSG.fail)
+        student = await db.add_telegram_id(student_id, telegram_id)
+        dialog_manager.dialog_data['full_name'] = student.full_name
+        await dialog_manager.switch_to(AuthSG.success)
+    except:
+        await dialog_manager.switch_to(AuthSG.fail)
 
 async def fail_auth(message: Message, widget: MessageInput, dialog_manager: DialogManager):
     await dialog_manager.switch_to(AuthSG.fail)
@@ -38,7 +39,7 @@ async def go_start(callback: CallbackQuery, button: Button, dialog_manager: Dial
     else:
         await dialog_manager.start(
             state=StartSG.student,
-            mode=StartMode.RESET_STACK
+            mode=StartMode.RESET_STACK,
             )
 
 async def go_back(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
