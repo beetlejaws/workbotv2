@@ -1,6 +1,12 @@
 from aiogram import Dispatcher
-from dialogs.dialogs import *
 from aiogram_dialog import setup_dialogs
+
+from dialogs.start_dialog import start_dialog
+from dialogs.auth_dialog import auth_dialog
+from dialogs.soon_dialog import soon_dialog
+from dialogs.send_work_dialog import send_work_dialog
+from dialogs.admin_dialog import sheets_dialog
+from dialogs.schedule_dialog import schedule_dialog
 
 
 def setup_my_dialogs(dp: Dispatcher) -> None:

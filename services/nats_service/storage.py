@@ -1,6 +1,7 @@
 from typing import Any, Optional, Self
 
 import ormsgpack
+import base64
 from aiogram.filters.state import StateType
 from aiogram.fsm.state import State
 from aiogram.fsm.storage.base import (
@@ -28,7 +29,7 @@ class NatsStorage(BaseStorage):
     ) -> None:
         
         if key_builder is None:
-            key_builder = DefaultKeyBuilder()
+            key_builder = DefaultKeyBuilder(with_destiny=True)
         self.nc = nc
         self.js = js
         self.fsm_states_bucket = fsm_states_bucket
@@ -57,27 +58,32 @@ class NatsStorage(BaseStorage):
                 storage='file'
             )
         )
+    
+    def _kv_key(self, key: StorageKey) -> str:
+        raw = self._key_builder.build(key)
+        safe = base64.urlsafe_b64encode(raw.encode()).decode().rstrip("=")
+        return safe
 
     async def set_state(self, key: StorageKey, state: StateType = None) -> None:
         state = state.state if isinstance(state, State) else state
         await self.kv_states.put(
-            self._key_builder.build(key), ormsgpack.packb(state or None)
+            self._kv_key(key), ormsgpack.packb(state or None)
         )
 
     async def get_state(self, key: StorageKey) -> Optional[str]:
         try:
-            entry = await self.kv_states.get(self._key_builder.build(key))
+            entry = await self.kv_states.get(self._kv_key(key))
             data = ormsgpack.unpackb(entry.value)
         except NotFoundError:
             return None
         return data
 
     async def set_data(self, key: StorageKey, data: dict[str, Any]) -> None:
-        await self.kv_data.put(self._key_builder.build(key), ormsgpack.packb(data))
+        await self.kv_data.put(self._kv_key(key), ormsgpack.packb(data))
 
     async def get_data(self, key: StorageKey) -> dict[str, Any]:
         try:
-            entry = await self.kv_data.get(self._key_builder.build(key))
+            entry = await self.kv_data.get(self._kv_key(key))
             return ormsgpack.unpackb(entry.value)
         except NotFoundError:
             return {}

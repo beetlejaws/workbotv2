@@ -30,7 +30,10 @@ async def main():
         stream=config.consumer.stream
     )
 
-    storage: NatsStorage = await NatsStorage(nc, js).create_storage()
+    storage: NatsStorage = await NatsStorage(
+        nc=nc,
+        js=js
+    ).create_storage()
 
     dp = Dispatcher(storage=storage)
 
