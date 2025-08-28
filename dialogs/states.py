@@ -27,3 +27,7 @@ class SendWorkSG(StatesGroup):
 
 class SoonSG(StatesGroup):
     show = State()
+
+
+class SettingsSG(StatesGroup):
+    show = State()

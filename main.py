@@ -37,8 +37,7 @@ async def main():
 
     dp = Dispatcher(storage=storage)
 
-    ids = ['7973947155'] * 2
-    setup_scheduler(js, ids, config.consumer.subject)
+    setup_scheduler(js, config.consumer.subject, sessionmaker, gd)
     
     dp.workflow_data.update(
         {'gs': gs,

@@ -13,6 +13,7 @@ from db.views import StudentUser
 from services.google_services import GoogleDrive
 
 from dialogs.states import SoonSG
+from dialogs.utils import radio_check_choice
 
 
 #handlers
@@ -22,7 +23,6 @@ async def mode_selection(callback: CallbackQuery, widget: ManagedRadio, dialog_m
 async def period_selection(callback: CallbackQuery, widget: ManagedRadio, dialog_manager: DialogManager, item_id: str):
     dialog_manager.dialog_data['current_period'] = item_id
 
-#getters
 async def soon_getter(dialog_manager: DialogManager, db: Database, gd: GoogleDrive, student: StudentUser, **kwargs):
 
     now = datetime.now()
@@ -41,55 +41,27 @@ async def soon_getter(dialog_manager: DialogManager, db: Database, gd: GoogleDri
         start_date, end_date = periods[period]
 
         if mode == 'lessons':
-            courses_data = await db.get_courses_for_class(student.class_id)
-            object_ids = [i[1] for i in courses_data]
-            data = await db.get_lessons_by_period(object_ids, start_date, end_date)
+            data_list = await db.get_lessons_by_period(student.subject_ids, start_date, end_date)
         else:
-            data = await db.get_active_tests(student.class_id, start_date=start_date, end_date=end_date)
+            data_list = await db.get_active_tests(student.class_id, start_date, end_date)
 
-        return data
+        return data_list
 
-    async def process_lesson(lesson: dict) -> str:
-        number = lesson['number']
-        folder_id = await db.get_folder_id_by_object(lesson['id'])
-        file_name = (f'Занятие {number}' if number > 9 else f'Занятие 0{number}') + '.pdf'
-        file_id = await gd.get_file_id_by_name(file_name, folder_id)  # type: ignore
-        
-        if file_id is not None:
-            file_link = await gd.get_file_link(file_id)
-            return f'<a href="{file_link}">{combine_lesson_info(lesson)}</a>'
-        return combine_lesson_info(lesson)
-    
-    def process_test(test: dict) -> str:
-        folder_id = test['public_folder_id']
-        folder_link = f'https://drive.google.com/drive/folders/{folder_id}'
-        return f'<a href="{folder_link}">{combine_test_info(test)}</a>'
-    
-    if dialog_manager.dialog_data.get('current_period') is None:
-        current_period = 'today'
-        period_radio: ManagedRadio = dialog_manager.find('period') # type: ignore
-        await period_radio.set_checked(current_period)
-    else:
-        current_period = dialog_manager.dialog_data['current_period']
+    current_period = await radio_check_choice(dialog_manager, 'period', 'current_period', 'today')
+    current_mode = await radio_check_choice(dialog_manager, 'mode', 'current_mode', 'lessons')
 
-    if dialog_manager.dialog_data.get('current_mode') is None:
-        current_mode = 'lessons'
-        mode_radio: ManagedRadio = dialog_manager.find('mode') # type: ignore
-        await mode_radio.set_checked(current_mode)
-    else:
-        current_mode = dialog_manager.dialog_data['current_mode']
-
-    data = await get_data(current_period, current_mode)
+    data_list = await get_data(current_period, current_mode)
     check = False
     info = []
 
-    if len(data) > 0:
+    if data_list:
         check = True
         if current_mode == 'lessons':
-            tasks = [process_lesson(lesson) for lesson in data]
+            tasks = [gd.process_lesson_html_view(lesson) for lesson in data_list]
             info = await asyncio.gather(*tasks)
         else:
-            info = [process_test(test) for test in data.values()] # type: ignore
+            info = [gd.process_test_html_view(test) for test in data_list]
+        
 
     periods = [('Сегодня', 'today'), ('Эта неделя', 'this_week'), ('След. неделя', 'next_week')]
     modes = [('Занятия', 'lessons'), ('Дедлайны', 'deadlines')]
@@ -100,6 +72,85 @@ async def soon_getter(dialog_manager: DialogManager, db: Database, gd: GoogleDri
         'periods': periods,
         'modes': modes
     }
+
+#getters
+# async def soon_getter(dialog_manager: DialogManager, db: Database, gd: GoogleDrive, student: StudentUser, **kwargs):
+
+#     now = datetime.now()
+#     now_date = now.date()
+#     last_day_this_week = get_last_day_of_week(now_date)
+#     first_day_next_week = last_day_this_week + timedelta(days=1)
+#     last_day_next_week = first_day_next_week + timedelta(days=7)
+
+#     async def get_data(period: str, mode: str):
+#         periods = {
+#         'today': (now_date, now_date),
+#         'this_week': (now_date, last_day_this_week),
+#         'next_week': (first_day_next_week, last_day_next_week)
+#         }
+
+#         start_date, end_date = periods[period]
+
+#         if mode == 'lessons':
+#             courses_data = await db.get_courses_for_class(student.class_id)
+#             object_ids = [i[1] for i in courses_data]
+#             data = await db.get_lessons_by_period(object_ids, start_date, end_date)
+#         else:
+#             data = await db.get_active_tests(student.class_id, start_date=start_date, end_date=end_date)
+
+#         return data
+
+#     async def process_lesson(lesson: dict) -> str:
+#         number = lesson['number']
+#         folder_id = await db.get_folder_id_by_object(lesson['id'])
+#         file_name = (f'Занятие {number}' if number > 9 else f'Занятие 0{number}') + '.pdf'
+#         file_id = await gd.get_file_id_by_name(file_name, folder_id)  # type: ignore
+        
+#         if file_id is not None:
+#             file_link = await gd.get_file_link(file_id)
+#             return f'<a href="{file_link}">{combine_lesson_info(lesson)}</a>'
+#         return combine_lesson_info(lesson)
+    
+#     def process_test(test: dict) -> str:
+#         folder_id = test['public_folder_id']
+#         folder_link = f'https://drive.google.com/drive/folders/{folder_id}'
+#         return f'<a href="{folder_link}">{combine_test_info(test)}</a>'
+    
+#     if dialog_manager.dialog_data.get('current_period') is None:
+#         current_period = 'today'
+#         period_radio: ManagedRadio = dialog_manager.find('period') # type: ignore
+#         await period_radio.set_checked(current_period)
+#     else:
+#         current_period = dialog_manager.dialog_data['current_period']
+
+#     if dialog_manager.dialog_data.get('current_mode') is None:
+#         current_mode = 'lessons'
+#         mode_radio: ManagedRadio = dialog_manager.find('mode') # type: ignore
+#         await mode_radio.set_checked(current_mode)
+#     else:
+#         current_mode = dialog_manager.dialog_data['current_mode']
+
+#     data = await get_data(current_period, current_mode)
+#     check = False
+#     info = []
+
+#     if len(data) > 0:
+#         check = True
+#         if current_mode == 'lessons':
+#             tasks = [process_lesson(lesson) for lesson in data]
+#             info = await asyncio.gather(*tasks)
+#         else:
+#             info = [process_test(test) for test in data.values()] # type: ignore
+
+#     periods = [('Сегодня', 'today'), ('Эта неделя', 'this_week'), ('След. неделя', 'next_week')]
+#     modes = [('Занятия', 'lessons'), ('Дедлайны', 'deadlines')]
+
+#     return {
+#         'info': info,
+#         'check': check,
+#         'periods': periods,
+#         'modes': modes
+#     }
 
 
 soon_dialog = Dialog(

@@ -48,8 +48,10 @@ start_dialog = Dialog(
                 id='start_sending_work',
                 state=SendWorkSG.show_tests
             ),
-            Cancel(
-                text=Const('Настройки')
+            Start(
+                text=Const('Настройки'),
+                id='settings',
+                state=SettingsSG.show
             )
         ),
         state=StartSG.student,

@@ -2,7 +2,6 @@ from typing import Any
 import pytz
 from datetime import datetime, date, time, timedelta
 from sqlalchemy import Integer, BigInteger, Date, Time, Boolean
-from services.google_services import GoogleDrive
 
 
 def combine_lesson_info(lesson: dict) -> str:

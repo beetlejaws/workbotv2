@@ -18,6 +18,7 @@ async def student_id_check(message: Message, widget: MessageInput, dialog_manage
     try:
         student_id = int(message.text)
         student = await db.add_telegram_id(student_id, telegram_id)
+        print(student)
         dialog_manager.dialog_data['full_name'] = student.full_name
         await dialog_manager.switch_to(AuthSG.success)
     except:

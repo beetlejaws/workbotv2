@@ -1,5 +1,6 @@
 from utils.utils import *
 from io import BytesIO
+import json
 
 from aiogram import Bot
 from aiogram.types import Message, CallbackQuery, ContentType
@@ -10,7 +11,7 @@ from aiogram_dialog.widgets.kbd import Button, Group, Select, SwitchTo, Back, Ca
 from aiogram_dialog.widgets.input import MessageInput
 
 from db.requests import Database
-from db.views import StudentUser
+from db.views import StudentUser, Test
 from services.google_services import GoogleDrive
 
 from dialogs.states import SendWorkSG
@@ -18,7 +19,7 @@ from dialogs.states import SendWorkSG
 
 #handlers
 async def choose_sending_work(callback: CallbackQuery, widget: Select, dialog_manager: DialogManager, item_id: str):
-    dialog_manager.dialog_data['chosen_test'] = int(item_id)
+    dialog_manager.dialog_data['chosen_index'] = int(item_id)
     await dialog_manager.next()
 
 async def document_check(message: Message, widget: MessageInput, dialog_manager: DialogManager):
@@ -30,9 +31,9 @@ async def document_check(message: Message, widget: MessageInput, dialog_manager:
     
     file_size = document.file_size
     file_info = await bot.get_file(document.file_id)
-    file = await bot.download_file(file_info.file_path) # type: ignore
+    file = await bot.download_file(file_info.file_path)
 
-    if file_size > MAX_FILE_SIZE: # type: ignore
+    if file_size > MAX_FILE_SIZE:
         dialog_manager.dialog_data['fail_text'] = 'Этот файл слишком большой. Отправь файл весом не более 20MB'
         await dialog_manager.switch_to(SendWorkSG.fail_sending)
     elif document.mime_type != 'application/pdf':
@@ -41,7 +42,7 @@ async def document_check(message: Message, widget: MessageInput, dialog_manager:
     else:
         file_name = dialog_manager.dialog_data['file_name']
         folder_id = dialog_manager.dialog_data['folder_id']
-        file_content = BytesIO(file.read()) # type: ignore
+        file_content = BytesIO(file.read())
         gd: GoogleDrive = dialog_manager.middleware_data['gd']
         previous_versions = await gd.get_files_by_name(file_name, folder_id)
         if len(previous_versions) > 0:
@@ -58,14 +59,14 @@ async def fail_document_check(message: Message, widget: MessageInput, dialog_man
 
 #getters
 async def send_work_getter(dialog_manager: DialogManager, db: Database, student: StudentUser, **kwargs):
-    tests_data = await db.get_active_tests(student.class_id)
-    dialog_manager.dialog_data['tests_data'] = tests_data
-    if tests_data is None or not tests_data:
+    tests_list: list[Test] = await db.get_active_tests(student.class_id)
+    if tests_list:
+        show_mode = True
+        dialog_manager.dialog_data['tests_data'] = json.dumps([test.model_dump(mode='json') for test in tests_list])
+        tests = [(index, test.course_title, test.title) for index, test in enumerate(tests_list)]
+    else:
         show_mode = False
         tests = None
-    else:
-        show_mode = True
-        tests = list(map(lambda x: (x, tests_data[x]['course_title'], tests_data[x]['test_title']), tests_data.keys()))
 
     return {
         'show_mode': show_mode,
@@ -73,14 +74,13 @@ async def send_work_getter(dialog_manager: DialogManager, db: Database, student:
     }
 
 async def info_for_sending_getter(dialog_manager: DialogManager, db: Database, gd: GoogleDrive, student: StudentUser, **kwargs):
-    chosen_test_id = dialog_manager.dialog_data['chosen_test']
-    info = dialog_manager.dialog_data['tests_data'][chosen_test_id]
-    full_name = await db.get_str_full_name(student.telegram_id)
-    class_title = await db.get_class_title(student.class_id)
+    chosen_index = dialog_manager.dialog_data['chosen_index']
+    tests = [Test(**s) for s in json.loads(dialog_manager.dialog_data['tests_data'])]
+    test: Test = tests[chosen_index]
 
-    file_name = f'{info['course_title']} {info['test_title']} {class_title} {full_name} {student.variant}'
+    file_name = f'{test.course_title} {test.title} {student.class_title} {student.full_name} {student.variant}'
     dialog_manager.dialog_data['file_name'] = file_name
-    folder_id = info['private_folder_id']
+    folder_id = test.private_folder_id
     dialog_manager.dialog_data['folder_id'] = folder_id
 
     time = await gd.get_latest_version_date(file_name, folder_id)
@@ -173,6 +173,11 @@ send_work_dialog = Dialog(
     ),
     Window(
         Format('Файл отправлен. Время отправления - {time}'),
+        SwitchTo(
+            text=Const('Вернуться'),
+            id='back',
+            state=SendWorkSG.show_tests
+        ),
         state=SendWorkSG.success_sending,
         getter=sending_time_getter
     )

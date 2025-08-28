@@ -49,6 +49,8 @@ class Student(Base):
     surname: Mapped[str] = mapped_column()
     class_id: Mapped[int] = mapped_column(ForeignKey('classes.id'))
     variant: Mapped[int] = mapped_column()
+    lesson_sub: Mapped[bool] = mapped_column(nullable=True)
+    deadlines_sub: Mapped[bool] = mapped_column(nullable=True)
 
 
 class Test(Base):

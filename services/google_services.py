@@ -3,6 +3,7 @@ import json
 import aiohttp
 from google.oauth2.service_account import Credentials
 from google.auth.transport.requests import Request
+from db.views import Lesson, Test
 
 
 class GoogleService:
@@ -48,8 +49,20 @@ class GoogleDrive(GoogleService):
         return f'https://drive.google.com/drive/folders/{folder_id}'
     
     @staticmethod
-    async def get_file_link(file_id: str) -> str:
+    def get_file_link(file_id: str) -> str:
         return f"https://drive.google.com/file/d/{file_id}/view"
+    
+    async def process_lesson_html_view(self, lesson: Lesson):
+        file_id = await self.get_file_id_by_name(lesson.file_name, lesson.folder_id)
+        if file_id:
+            file_link = self.get_file_link(file_id)
+            return f'<a href="{file_link}">{str(lesson)}</a>'
+        return str(lesson)
+
+    def process_test_html_view(self, test: Test):
+        folder_id = test.public_folder_id
+        folder_link = self.get_folder_link(folder_id)
+        return f'<a href="{folder_link}">{str(test)}</a>'
 
     async def get_file_id_by_name(self, file_name: str, folder_id: str) -> str | None:
         query = f'"{folder_id}" in parents and name = "{file_name}"'
