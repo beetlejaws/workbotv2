@@ -17,10 +17,7 @@ async def main():
 
     config = load_config()
 
-    setup_logging(bot,
-                  config.bot.logging_group_id,
-                  config.bot.info_topic_id,
-                  config.bot.error_topic_id)
+    
 
     engine = create_async_engine(url=config.db.url)
 
@@ -30,6 +27,11 @@ async def main():
     gs = GoogleSheets(config.google_service.credentials_path)
     gd = GoogleDrive(config.google_service.credentials_path)
     sheets_ids: dict = config.google_service.sheets_ids
+    
+    setup_logging(bot,
+                  config.bot.logging_group_id,
+                  config.bot.info_topic_id,
+                  config.bot.error_topic_id)
     
     nc, js = await nats_connect.connect_to_nats(config.nats.servers)
     await nats_connect.create_stream(
