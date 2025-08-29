@@ -1,7 +1,9 @@
 from config import load_config
 import logging
+from logging_settings import setup_logging
 import asyncio
 from aiogram import Bot, Dispatcher
+from aiogram.types import error_event
 from dialogs.setup import setup_my_dialogs
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from middlewares.middlewares import DatabaseMiddleware, UserMiddleware
@@ -14,6 +16,12 @@ from services.nats_service.storage import NatsStorage
 async def main():
 
     config = load_config()
+
+    setup_logging(bot,
+                  config.bot.logging_group_id,
+                  config.bot.info_topic_id,
+                  config.bot.error_topic_id)
+
     engine = create_async_engine(url=config.db.url)
 
     sessionmaker = async_sessionmaker(engine)
@@ -48,7 +56,6 @@ async def main():
          'last_workday': config.calendar.last_workday}
     )
 
-    logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
 
     dp.include_router(start_handler.router)
@@ -56,6 +63,22 @@ async def main():
 
     dp.update.outer_middleware(DatabaseMiddleware(session=sessionmaker))
     dp.update.outer_middleware(UserMiddleware())
+
+    @dp.error()
+    async def error_handler(event: error_event.ErrorEvent):
+
+        if 'message is not modified' in str(event.exception):
+            pass
+        else:
+            logger.error('%s', event.exception)
+            logger.error('to_file', exc_info=True)
+            try:
+                if event.update.message:
+                    await event.update.message.answer('Произошла ошибка. Пожалуйста, попробуй позже')
+                elif event.update.callback_query:
+                    await event.update.callback_query.message.answer('Произошла ошибка. Пожалуйста, попробуй позже')
+            except Exception as e:
+                logger.error('Не удалось отправить сообщение с ошибкой пользователю - %s', e)
 
     await bot.delete_webhook(drop_pending_updates=True)
 

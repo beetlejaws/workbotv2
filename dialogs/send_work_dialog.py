@@ -1,6 +1,7 @@
 from utils.utils import *
 from io import BytesIO
 import json
+import logging
 
 from aiogram import Bot
 from aiogram.types import Message, CallbackQuery, ContentType
@@ -16,6 +17,8 @@ from services.google_services import GoogleDrive
 
 from dialogs.states import SendWorkSG
 
+
+logger = logging.getLogger(__name__)
 
 #handlers
 async def choose_sending_work(callback: CallbackQuery, widget: Select, dialog_manager: DialogManager, item_id: str):
@@ -49,6 +52,8 @@ async def document_check(message: Message, widget: MessageInput, dialog_manager:
             file_name += f'_v{len(previous_versions) + 1}'
 
         await gd.upload_file(f'{file_name}.pdf', file_content, folder_id)
+
+        logger.info(f'STUDENT: Отправлен файл {file_name}')
 
         await dialog_manager.switch_to(SendWorkSG.success_sending)
 

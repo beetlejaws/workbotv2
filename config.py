@@ -7,6 +7,9 @@ import json
 class Bot:
     token: str
     admin_id: int
+    logging_group_id: int
+    info_topic_id: int
+    error_topic_id: int
 
 
 @dataclass
@@ -62,7 +65,10 @@ def load_config(path: str | None = None) -> Config:
     return Config(
         bot=Bot(
             token=env('BOT_TOKEN'),
-            admin_id=int(env('ADMIN_ID'))
+            admin_id=int(env('ADMIN_ID')),
+            logging_group_id=int(env('LOGGING_GROUP_ID')),
+            info_topic_id=int(env('INFO_TOPIC_ID')),
+            error_topic_id=int(env('ERROR_TOPIC_ID'))
         ),
         db=Db(
             name=env('DB_NAME'),

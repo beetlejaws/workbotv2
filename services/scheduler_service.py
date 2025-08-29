@@ -1,4 +1,6 @@
+import logging
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 from nats.js import JetStreamContext
 from services.nats_service.publisher import call_publisher
 import asyncio
@@ -7,6 +9,7 @@ from db.requests import Database
 from db.views import StudentUser
 from services.google_services import GoogleDrive
 from datetime import datetime, timedelta
+import pytz
 
 
 async def prepare_and_send_info_for_student(js: JetStreamContext, subject: str, db: Database, telegram_id: int, gd: GoogleDrive, tomorrow: datetime.date, mode: str) -> bool:
@@ -71,18 +74,18 @@ async def deadlines_notification(js: JetStreamContext, session_maker: async_sess
         await asyncio.gather(*tasks)
 
 def setup_scheduler(js: JetStreamContext, subject: str, session_maker: async_sessionmaker[AsyncSession], gd: GoogleDrive):
-    scheduler = AsyncIOScheduler()
+    scheduler = AsyncIOScheduler(timezone=pytz.timezone("Europe/Moscow"))
 
     scheduler.add_job(
         lessons_notification,
-        'interval',
+        CronTrigger(hour=18, minute=0),
         seconds=71,
         args=[js, session_maker, gd, subject]
     )
 
     scheduler.add_job(
         deadlines_notification,
-        'interval',
+        CronTrigger(hour=12, minute=0),
         seconds = 47,
         args=[js, session_maker, gd, subject]
     )

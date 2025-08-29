@@ -1,3 +1,5 @@
+import logging
+
 from aiogram.types import Message, CallbackQuery, ContentType
 
 from aiogram_dialog import Dialog, Window, DialogManager, StartMode
@@ -8,6 +10,10 @@ from aiogram_dialog.widgets.input import MessageInput
 from db.requests import Database
 
 from dialogs.states import AuthSG, StartSG
+
+
+logger = logging.getLogger(__name__)
+
 
 #handlers
 async def student_id_check(message: Message, widget: MessageInput, dialog_manager: DialogManager):
@@ -20,6 +26,7 @@ async def student_id_check(message: Message, widget: MessageInput, dialog_manage
         student = await db.add_telegram_id(student_id, telegram_id)
         print(student)
         dialog_manager.dialog_data['full_name'] = student.full_name
+        logger.info(f'STUDENT: Новый пользователь {student.full_name}\n "tg://openmessage?user_id={telegram_id}"')
         await dialog_manager.switch_to(AuthSG.success)
     except:
         await dialog_manager.switch_to(AuthSG.fail)

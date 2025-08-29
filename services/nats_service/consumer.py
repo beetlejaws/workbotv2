@@ -49,6 +49,12 @@ class SendMessageConsumer:
 
         await self.process_messages()
 
+    async def stop(self):
+        self.is_running = False
+        if self.stream_sub:
+            await self.stream_sub.unsubscribe()
+            
+
     async def process_messages(self) -> None:
         
         while self.is_running:
@@ -57,7 +63,7 @@ class SendMessageConsumer:
                 if not messages:
                     continue
 
-                logger.info(f"Получен батч из {len(messages)} сообщений")
+                logger.info(f"NATS: Получен батч из {len(messages)} сообщений")
 
                 tasks = []
                 for msg in messages:
@@ -65,7 +71,7 @@ class SendMessageConsumer:
                     tasks.append(task)
 
                 await asyncio.gather(*tasks, return_exceptions=True)
-                logger.info('Сообщения отправлены')
+                logger.info('NATS: Сообщения отправлены')
 
             except TimeoutError:
                 continue
@@ -83,7 +89,7 @@ class SendMessageConsumer:
             await msg.ack()
 
         except TelegramRetryAfter as e:
-            logger.warning(f" Rate limit, сообщение будет обработано позже: {e}")
+            logger.warning(f"Rate limit, сообщение будет обработано позже: {e}")
 
         except Exception as e:
             logger.error(f"Ошибка обработки сообщения: {e}")
