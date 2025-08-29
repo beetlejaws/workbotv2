@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   nats:
     image: nats:latest
@@ -7,9 +9,9 @@ services:
       - "4222:4222"
       - "8222:8222"
     volumes:
-    - ./nats/data:/data
-    - ./nats/config:/config
-  
+      - ./nats/data:/data
+      - ./nats/config:/config
+
   nats-nui:
     image: ghcr.io/nats-nui/nui:latest
     container_name: nats_nui
@@ -18,4 +20,10 @@ services:
     volumes:
       - ./nui/db:/db
     depends_on:
-    - nats
+      - nats
+
+  bot:
+    build: .
+    container_name: my_bot
+    depends_on:
+      - nats
