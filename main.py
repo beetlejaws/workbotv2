@@ -12,6 +12,7 @@ from services.google_services import GoogleSheets, GoogleDrive
 from services.nats_service import nats_connect
 from services.scheduler_service import setup_scheduler
 from services.nats_service.storage import NatsStorage
+from main_menu import set_main_menu
 
 async def main():
 
@@ -27,6 +28,8 @@ async def main():
     gs = GoogleSheets(config.google_service.credentials_path)
     gd = GoogleDrive(config.google_service.credentials_path)
     sheets_ids: dict = config.google_service.sheets_ids
+
+    await set_main_menu(bot)
     
     setup_logging(bot,
                   config.bot.logging_group_id,
