@@ -90,7 +90,7 @@ def setup_scheduler(js: JetStreamContext, subject: str, session_maker: async_ses
 
     scheduler.add_job(
         lessons_notification,
-        CronTrigger(hour=18, minute=24),
+        CronTrigger(hour=16, minute=0),
         seconds=71,
         args=[js, session_maker, gd, subject]
     )
