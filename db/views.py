@@ -44,6 +44,10 @@ class Lesson(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     @computed_field
+    def short_name(self) -> str:
+        return (self.course_title + f' Занятие {self.number}' if self.number > 9 else f'Занятие 0{self.number}')
+
+    @computed_field
     def file_name(self) -> str:
         return (f'Занятие {self.number}' if self.number > 9 else f'Занятие 0{self.number}') + '.pdf'
     

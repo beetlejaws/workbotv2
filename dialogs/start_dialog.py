@@ -44,12 +44,12 @@ start_dialog = Dialog(
                 Format('{folder_link}')
             ),
             Start(
-                Const('Отправить работу'),
+                Const('📎 Отправить работу'),
                 id='start_sending_work',
                 state=SendWorkSG.show_tests
             ),
             Start(
-                text=Const('Настройки'),
+                text=Const('🔔 Настроить уведомления'),
                 id='settings',
                 state=SettingsSG.show
             )

@@ -47,29 +47,29 @@ settings_dialog = Dialog(
         Const(
             text=
 '''Здесь ты можешь включать и отключать уведомления по грядущим занятиям и дедлайнам.
-✅ - уведомления включены
-❌ - уведомления отключены'''
+🔔 - уведомления включены
+🔕 - уведомления отключены'''
         ),
         Button(
-            text=Const('✅ Занятия на завтра'),
+            text=Const('🔔 Занятия на завтра'),
             id='lesson_sub_status',
             when='lesson_sub_status',
             on_click=change_sub_status
         ),
         Button(
-            text=Const('❌ Занятия на завтра'),
+            text=Const('🔕 Занятия на завтра'),
             id='lesson_unsub_status',
             when='lesson_unsub_status',
             on_click=change_sub_status
         ),
         Button(
-            text=Const('✅ Дедлайны'),
+            text=Const('🔔 Дедлайны'),
             id='deadline_sub_status',
             when='deadline_sub_status',
             on_click=change_sub_status
         ),
         Button(
-            text=Const('❌ Дедлайны'),
+            text=Const('🔕 Дедлайны'),
             id='deadline_unsub_status',
             when='deadline_unsub_status',
             on_click=change_sub_status

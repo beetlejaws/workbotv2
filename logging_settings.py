@@ -3,17 +3,17 @@ import asyncio
 from aiogram import Bot
 
 
-class SendFileFilter(logging.Filter):
+class TgFilter(logging.Filter):
     def filter(self, record):
-        return 'NATS' in record.msg.lower() or 'STUDENT' in record.msg.lower()
+        return 'NATS' in record.msg.upper() or 'STUDENT' in record.msg.upper()
 
 class ToFileFilter(logging.Filter):
     def filter(self, record):
-        return 'to_file' in record.msg.lower()
+        return 'FILE' in record.msg.upper()
     
 class NotToFileFilter(logging.Filter):
     def filter(self, record):
-        return 'to_file' not in record.msg.lower()
+        return 'FILE' not in record.msg.upper()
 
 class TgLogsHandler(logging.Handler):
     def __init__(self, bot: Bot, chat_id: int, topic_id: int):
@@ -43,7 +43,7 @@ def tg_logs_handler_factory(bot: Bot, chat_id: int, topic_id: int):
 def setup_logging(bot: Bot, chat_id: int, info_topic_id: int, error_topic_id: int):
     tg_info_handler = tg_logs_handler_factory(bot, chat_id, info_topic_id)
     tg_info_handler.setLevel(logging.INFO)
-    tg_info_handler.addFilter(SendFileFilter())
+    tg_info_handler.addFilter(TgFilter())
 
     tg_error_handler = tg_logs_handler_factory(bot, chat_id, error_topic_id)
     tg_error_handler.setLevel(logging.WARNING)

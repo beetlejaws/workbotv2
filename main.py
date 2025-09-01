@@ -73,7 +73,7 @@ async def main():
             pass
         else:
             logger.error('%s', event.exception)
-            logger.error('to_file', exc_info=True)
+            logger.error('FILE', exc_info=True)
             try:
                 if event.update.message:
                     await event.update.message.answer('Произошла ошибка. Пожалуйста, попробуй позже')

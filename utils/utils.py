@@ -30,6 +30,8 @@ def get_first_day_of_month(month: int) -> date:
 
 def get_last_day_of_month(month: int) -> date:
     year = date.today().year
+    if month == 12:
+        return date(year, month, 31)
     return date(year, month + 1, 1) - timedelta(days=1)
 
 def get_last_day_of_week(day: date) -> date:

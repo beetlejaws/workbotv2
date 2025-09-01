@@ -83,7 +83,7 @@ async def info_for_sending_getter(dialog_manager: DialogManager, db: Database, g
     tests = [Test(**s) for s in json.loads(dialog_manager.dialog_data['tests_data'])]
     test: Test = tests[chosen_index]
 
-    file_name = f'{test.course_title} {test.title} {student.class_title} {student.full_name} {student.variant}'
+    file_name = f'{test.course_title} {test.title} {student.class_title} {student.variant} {student.full_name} '
     dialog_manager.dialog_data['file_name'] = file_name
     folder_id = test.private_folder_id
     dialog_manager.dialog_data['folder_id'] = folder_id

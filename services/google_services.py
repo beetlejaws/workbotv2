@@ -58,6 +58,13 @@ class GoogleDrive(GoogleService):
             file_link = self.get_file_link(file_id)
             return f'<a href="{file_link}">{str(lesson)}</a>'
         return str(lesson)
+    
+    async def process_homework_html_view(self, lesson: Lesson):
+        file_id = await self.get_file_id_by_name(lesson.file_name, lesson.folder_id)
+        if file_id:
+            file_link = self.get_file_link(file_id)
+            return f'<a href="{file_link}">{lesson.short_name}</a>'
+        return lesson.short_name
 
     def process_test_html_view(self, test: Test):
         folder_id = test.public_folder_id

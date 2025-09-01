@@ -1,7 +1,7 @@
 from typing import Type
 from db.models import *
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import delete, insert, update
+from sqlalchemy import and_, or_, delete, insert, update
 from sqlalchemy.future import select
 from utils.utils import convert_value
 from db.views import StudentUser, Subject, Lesson
@@ -18,34 +18,114 @@ class Database:
             if table_name in [tbl.name for tbl in mapper.tables]:
                 return mapper.class_
 
+    # async def update_table(self, table_name: str, new_data: list[list]) -> bool:
+    #     model = self.get_model_by_table_name(table_name)
+    #     if model:
+    #         columns = model.__table__.columns
+    #     else:
+    #         return False
+    #     column_names = [col.name for col in model.__table__.columns]
+
+    #     converted_data = []
+    #     try:
+    #         for row in new_data:
+    #             item = {}
+    #             for index, value in enumerate(row):
+    #                 col_name = column_names[index]
+    #                 col_type = columns[col_name].type
+    #                 item[col_name] = convert_value(value, col_type)
+    #             converted_data.append(item)
+
+    #         await self.session.execute(
+    #             delete(model)
+    #             )
+    #         await self.session.execute(
+    #             insert(model), converted_data
+    #         )
+    #         await self.session.commit()
+    #         return True
+    #     except Exception as e:
+    #         print(e)
+    #         return False
+
     async def update_table(self, table_name: str, new_data: list[list]) -> bool:
         model = self.get_model_by_table_name(table_name)
-        if model:
-            columns = model.__table__.columns
-        else:
+        if not model:
             return False
-        column_names = [col.name for col in model.__table__.columns]
+            
+        columns = model.__table__.columns
+        column_names = [col.name for col in columns]
+        primary_key_columns = [col.name for col in model.__table__.primary_key.columns]
 
-        converted_data = []
         try:
+            # Конвертируем данные
+            converted_data = []
             for row in new_data:
                 item = {}
                 for index, value in enumerate(row):
-                    col_name = column_names[index]
-                    col_type = columns[col_name].type
-                    item[col_name] = convert_value(value, col_type)
+                    if index < len(column_names):  # Защита от выхода за границы
+                        col_name = column_names[index]
+                        col_type = columns[col_name].type
+                        item[col_name] = convert_value(value, col_type)
                 converted_data.append(item)
 
-            await self.session.execute(
-                delete(model)
-                )
-            await self.session.execute(
-                insert(model), converted_data
-            )
+            # Получаем текущие записи в базе
+            existing_records = await self.session.execute(select(model))
+            existing_records = existing_records.scalars().all()
+            
+            # Создаем множество ключей существующих записей
+            existing_keys = set()
+            for record in existing_records:
+                key_tuple = tuple(getattr(record, col) for col in primary_key_columns)
+                existing_keys.add(key_tuple)
+            
+            # Создаем множество ключей новых записей
+            new_keys = set()
+            for item in converted_data:
+                key_tuple = tuple(item[col] for col in primary_key_columns)
+                new_keys.add(key_tuple)
+            
+            # Находим записи для удаления (есть в базе, но нет в новых данных)
+            keys_to_delete = existing_keys - new_keys
+            
+            # Удаляем записи, которых нет в новых данных
+            if keys_to_delete:
+                # Строим условие для удаления
+                delete_conditions = []
+                for key_tuple in keys_to_delete:
+                    condition = and_(
+                        getattr(model, col) == value 
+                        for col, value in zip(primary_key_columns, key_tuple)
+                    )
+                    delete_conditions.append(condition)
+                
+                # Объединяем условия с OR (или используем IN если возможно)
+                if len(primary_key_columns) == 1:
+                    # Для одного столбца используем IN для оптимизации
+                    col_name = primary_key_columns[0]
+                    values_to_delete = [key_tuple[0] for key_tuple in keys_to_delete]
+                    await self.session.execute(
+                        delete(model).where(getattr(model, col_name).in_(values_to_delete))
+                    )
+                else:
+                    # Для составного ключа используем OR условий
+                    combined_condition = or_(*delete_conditions)
+                    await self.session.execute(delete(model).where(combined_condition))
+            
+            # Добавляем или обновляем записи
+            for item_data in converted_data:
+                # Создаем экземпляр модели
+                instance = model(**item_data)
+                
+                # Используем merge для добавления/обновления
+                await self.session.merge(instance)
+            
             await self.session.commit()
             return True
+            
         except Exception as e:
-            print(e)
+            print(f"Error in update_table: {e}")
+            await self.session.rollback()
             return False
         
     async def add_telegram_id(self, student_id: int, telegram_id: int) -> StudentUser:
@@ -245,3 +325,9 @@ class Database:
             test.course_title = course_title
             tests_list.append(test)
         return tests_list
+    
+    async def get_last_lessons_for_homework(object_ids: set) -> list[Lesson]:
+
+        today = datetime.datetime.today()
+
+        query = select(Lesson)

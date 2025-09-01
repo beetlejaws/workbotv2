@@ -12,12 +12,14 @@ from datetime import datetime, timedelta
 import pytz
 
 
+logger = logging.getLogger(__name__)
+
 async def prepare_and_send_info_for_student(js: JetStreamContext, subject: str, db: Database, telegram_id: int, gd: GoogleDrive, tomorrow: datetime.date, mode: str) -> bool:
     student:  StudentUser = await db.get_student_by_telegram_id(telegram_id)
     if mode == 'lesson':
         data = await db.get_lessons_by_period(student.subject_ids, tomorrow, tomorrow)
         first_string = 'Привет! На завтра запланированы следующие занятия:\n\n'
-
+        last_string = '\n\nТакже не забудь порешать ДЗ с предыдущего занятия:\n\n'
     else:
         today = tomorrow - timedelta(days=1)
         data = await db.get_active_tests(student.class_id, today, tomorrow)
@@ -28,8 +30,16 @@ async def prepare_and_send_info_for_student(js: JetStreamContext, subject: str, 
 
     if mode == 'lesson':
         tasks = [gd.process_lesson_html_view(lesson) for lesson in data]
-        strings = await asyncio.gather(*tasks)
-        message = first_string + '\n\n'.join(strings)
+        lessons = await asyncio.gather(*tasks)
+
+        far_far_day = tomorrow - timedelta(days = 14)
+        today = tomorrow - timedelta(days = 1)
+        unique_subject_ids = set([lesson.id for lesson in data])
+        homework_tasks = [db.get_lessons_by_period([subject_id], far_far_day, today) for subject_id in unique_subject_ids]
+        homework_data = await asyncio.gather(*homework_tasks)
+        homeworks = [x[-1] for x in homework_data]
+        homeworks_strings = [await gd.process_homework_html_view(homework) for homework in homeworks]
+        message = first_string + '\n\n'.join(lessons) + last_string + '\n\n'.join(homeworks_strings)
     else:
         strings = [gd.process_test_html_view(test) for test in data]
         message = first_string + '\n\n'.join(strings)
@@ -49,6 +59,8 @@ async def lessons_notification(js: JetStreamContext, session_maker: async_sessio
         db = Database(session)
 
         telegram_ids = await db.get_sub_lesson_students('lesson')
+
+        logger.info(f'NATS: Запущена рассылка для {len(telegram_ids)} студентов')
 
         tomorrow = datetime.now().date() + timedelta(days=1)
 
@@ -78,7 +90,7 @@ def setup_scheduler(js: JetStreamContext, subject: str, session_maker: async_ses
 
     scheduler.add_job(
         lessons_notification,
-        CronTrigger(hour=18, minute=0),
+        CronTrigger(hour=18, minute=24),
         seconds=71,
         args=[js, session_maker, gd, subject]
     )
